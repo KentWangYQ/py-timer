@@ -2,34 +2,7 @@
 
 from datetime import datetime
 
-
-class TimerTaskEntry(object):
-    def __init__(self, task, expiration_ms=0):
-        self.task = task
-        self.expiration_ms = expiration_ms
-        self.cancelled = False
-
-    def cancel(self):
-        self.cancelled = True
-
-
-class TimerTaskList(list):
-    def __init__(self, expiration_ms=0):
-        assert expiration_ms >= 0, 'expiration_ms must gte 0!'
-        super().__init__()
-        self.expiration_ms = expiration_ms
-
-    def set_expiration_ms(self, expiration_ms):
-        """
-        设置expiration_ms值，并新值与原值是否相等。
-        如果不相等，返回True，反之返回False。
-        :param expiration_ms:
-        :return:
-        """
-        assert expiration_ms >= 0, 'expiration_ms must gte 0!'
-
-        prev, self.expiration_ms = self.expiration_ms, expiration_ms
-        return prev != expiration_ms
+from .timer_task_list import TimerTaskList
 
 
 class TimingWheel(object):
@@ -59,7 +32,7 @@ class TimingWheel(object):
         # 表盘指针，当前时间，tick_ms的整数倍
         self.current_time = 0  # Type: int
         # 初始化轮槽
-        self.buckets = [TimerTaskList()] * self.wheel_size  # Type: [TimerTaskList]
+        self.buckets = [TimerTaskList() for _ in range(self.wheel_size)]  # Type: [TimerTaskList]
 
     def add(self, timer_task_entry):
         """
@@ -67,30 +40,29 @@ class TimingWheel(object):
         :param timer_task_entry:
         :return:
         """
-        if timer_task_entry.expiration_ms < self.current_time + self.tick_ms:
+        if timer_task_entry.expiration < self.current_time + self.tick_ms:
             '''
             任务已过期
             '''
-            # TODO: 执行task
-            # task_executor.submit(timer_task_entry.task)
-            pass
-        elif timer_task_entry.delay < self.current_time + self.interval:
+            # 执行task
+            timer_task_entry.task(*timer_task_entry.args, **timer_task_entry.kwargs)
+            return None, False
+        elif timer_task_entry.expiration < self.current_time + self.interval:
             '''
             任务过期时间在本时间轮跨度内
             '''
-            # 计算task应存入的轮槽索引值
-            idx = timer_task_entry.delay // self.tick_ms % self.wheel_size
+            # 计算bucket index
+            virtual_id = int(timer_task_entry.expiration // self.tick_ms)
             # 找到对应轮槽
-            bucket = self.buckets[idx]
+            bucket = self.buckets[virtual_id % self.wheel_size]
             # 向轮槽中的timer_task_list增加task
             # TODO: bucket需要与delay_queue共享，考虑写入时是否需要加锁
-            bucket.append(timer_task_entry)
+            bucket.add(timer_task_entry)
             # 设置轮槽过期时间
-            if bucket.set_expiration_ms(idx * self.tick_ms):
+            if bucket.set_expiration(virtual_id * self.tick_ms):
                 # 如果过期时间变动，向delay_queue注册timer_task_list
-                # TODO: 向delay_queue注册timer_task_list
-                # queue.offer(bucket)
-                pass
+                # 向delay_queue注册timer_task_list
+                return bucket, True
         else:
             '''
             任务过期时间不在本时间轮跨度内
@@ -100,7 +72,8 @@ class TimingWheel(object):
                 self.add_overflow_wheel()
 
             # 向高阶时间轮添加任务
-            self.overflow_wheel.add(timer_task_entry=timer_task_entry)
+            return self.overflow_wheel.add(timer_task_entry=timer_task_entry)
+        return None, False
 
     def add_overflow_wheel(self):
         """
@@ -123,5 +96,3 @@ class TimingWheel(object):
             if self.overflow_wheel:
                 # 推进高阶时间轮
                 self.overflow_wheel.advance_clock(time_ms)
-
-            # TODO: 考虑降级操作
