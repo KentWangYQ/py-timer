@@ -56,13 +56,11 @@ class TimingWheel(object):
             # 找到对应轮槽
             bucket = self.buckets[virtual_id % self.wheel_size]
             # 向轮槽中的timer_task_list增加task
-            # TODO: bucket需要与delay_queue共享，考虑写入时是否需要加锁
             bucket.add(timer_task_entry)
             # 设置轮槽过期时间
-            if bucket.set_expiration(virtual_id * self.tick_ms):
-                # 如果过期时间变动，向delay_queue注册timer_task_list
-                # 向delay_queue注册timer_task_list
-                return bucket, True
+            result = bucket.set_expiration(virtual_id * self.tick_ms)
+            # 返回bucket和过期时间修改结果
+            return bucket, result
         else:
             '''
             任务过期时间不在本时间轮跨度内
@@ -73,7 +71,6 @@ class TimingWheel(object):
 
             # 向高阶时间轮添加任务
             return self.overflow_wheel.add(timer_task_entry=timer_task_entry)
-        return None, False
 
     def add_overflow_wheel(self):
         """
