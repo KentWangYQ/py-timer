@@ -1,8 +1,8 @@
 # coding: utf-8
 
 from multiprocessing import Lock
-from datetime import datetime
 
+from . import time_util
 from .timing_wheel import TimingWheel
 from .delay_queue import DelayQueue
 
@@ -19,7 +19,7 @@ class Timer(object):
     # 任务计数器
     task_counter = 0
 
-    def __init__(self, tick_ms=1000, wheel_size=100, start_ms=datetime.now()):
+    def __init__(self, tick_ms=1000, wheel_size=100, start_ms=time_util.utc_now_timestamp_ms()):
         self.timing_wheel = TimingWheel(tick_ms=tick_ms, wheel_size=wheel_size, start_ms=start_ms)
         # 启动延时队列
         self.delay_queue.start()

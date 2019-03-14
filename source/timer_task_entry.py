@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from . import time_util
+
 
 class TimerTaskEntry(object):
     """
@@ -19,7 +21,7 @@ class TimerTaskEntry(object):
         :param args:
         :param kwargs:
         """
-        self.expiration = expiration  # 过期时间
+        self.expiration = None if expiration is None else (time_util.utc_now_timestamp_ms() + expiration)  # 过期时间
         self.task = task  # 任务
         self.args = args
         self.kwargs = kwargs
