@@ -13,7 +13,7 @@ class TimerTaskEntry(object):
     # 后继任务
     next = None
 
-    def __init__(self, expiration, task, *args, **kwargs):
+    def __init__(self, task, expiration=None, delay=None, *args, **kwargs):
         """
         初始化延时任务
         :param expiration: 过期时间
@@ -21,7 +21,16 @@ class TimerTaskEntry(object):
         :param args:
         :param kwargs:
         """
-        self.expiration = None if expiration is None else (time_util.utc_now_timestamp_ms() + expiration)  # 过期时间
+        # 过期时间
+        if expiration:
+            # 直接指定过期时间优先
+            self.expiration = expiration
+        elif delay:
+            # 指定延迟时间，换算为过期时间
+            self.expiration = time_util.utc_now_timestamp_ms() + delay
+        else:
+            # 两者均未指定，默认为当前时间
+            self.expiration = time_util.utc_now_timestamp_ms()
         self.task = task  # 任务
         self.args = args
         self.kwargs = kwargs

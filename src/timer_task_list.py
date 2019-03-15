@@ -14,15 +14,15 @@ class TimerTaskList(object):
     # 过期时间
     _expiration = -1
 
-    @property
-    def expiration(self):
-        with self.__lock:
-            return self._expiration
-
-    @expiration.setter
-    def expiration(self, value):
-        with self.__lock:
-            self._expiration = value
+    # @property
+    # def expiration(self):
+    #     with self.__lock:
+    #         return self._expiration
+    #
+    # @expiration.setter
+    # def expiration(self, value):
+    #     with self.__lock:
+    #         self._expiration = value
 
     # 任务计数器
     _task_counter = 0
@@ -43,7 +43,7 @@ class TimerTaskList(object):
         self.root = TimerTaskEntry(expiration=None, task=None)
         self.root.prev = self.root
         self.root.next = self.root
-        self.expiration = expiration
+        self._expiration = expiration
 
     def set_expiration(self, expiration):
         """
@@ -52,15 +52,17 @@ class TimerTaskList(object):
         :param expiration:
         :return:
         """
-        prev, self.expiration = self.expiration, expiration
-        return prev != expiration
+        with self.__lock:
+            prev, self._expiration = self._expiration, expiration
+            return prev != expiration
 
     def get_expiration(self):
         """
         获取过期时间
         :return:
         """
-        return self.expiration
+        with self.__lock:
+            return self._expiration
 
     def add(self, timer_task_entry):
         """
@@ -105,4 +107,4 @@ class TimerTaskList(object):
             head = _next
 
         # 充值任务列表过期时间
-        self.expiration = -1
+        self._expiration = -1

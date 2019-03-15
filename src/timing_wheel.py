@@ -21,8 +21,6 @@ class TimingWheel(object):
         :param wheel_size:
         :param start_ms:
         """
-        # 开始时间，时间戳
-        # self.start_ms = start_ms  # Type: timestamp
         # 基本时间跨度，整数，单位：ms
         self.tick_ms = tick_ms  # Type: int
         # 时间轮容量(格数)
@@ -54,7 +52,7 @@ class TimingWheel(object):
             # 计算bucket index
             virtual_id = int(timer_task_entry.expiration // self.tick_ms)
             # 找到对应轮槽
-            bucket = self.buckets[int(virtual_id % self.wheel_size)]
+            bucket = self.buckets[virtual_id % self.wheel_size]
             # 向轮槽中的timer_task_list增加task
             bucket.add(timer_task_entry)
             # 设置轮槽过期时间

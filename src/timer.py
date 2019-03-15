@@ -35,7 +35,8 @@ class Timer(object):
             bucket, expiration_updated = self.timing_wheel.add(timer_task_entry)
             if bucket and expiration_updated:
                 # 任务列表过期时间更新，向延时队列注册任务列表
-                self.delay_queue.offer(bucket.expiration - self.timing_wheel.current_time, self.advance_clock, bucket)
+                self.delay_queue.offer(bucket.get_expiration() - time_util.utc_now_timestamp_ms(), self.advance_clock,
+                                       bucket)
 
     def advance_clock(self, bucket):
         """
@@ -46,7 +47,7 @@ class Timer(object):
         """
         if bucket:
             # 推进时间轮
-            self.timing_wheel.advance_clock(time_ms=bucket.expiration)
+            self.timing_wheel.advance_clock(time_ms=bucket.get_expiration())
             # 刷新任务列表
             bucket.flush(self.add)
 
